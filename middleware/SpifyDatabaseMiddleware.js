@@ -17,6 +17,7 @@
 */
 
 const mongoose = require('mongoose');
+const SpifyDaemonDriver = require('./SpifyDaemonDriver');
 
 const InitializeAPIMiddleware = (app, config) => {
     const { check, validationResult } = require('express-validator');
@@ -77,6 +78,96 @@ const InitializeAPIMiddleware = (app, config) => {
 
     /* Create Admin User if it does not Exist */
     createAdminIfNotExists();
+
+    const isAuthorized = (req, res, next) => {
+        try {
+            res.decodedToken = parseJwtToken(req.cookies.jwtToken);
+            next();
+        } catch (err) {
+            if (err.message === 'jwt must be provided')
+                return res.status(401).json({ message: 'Unauthenticated', status: false });
+            else if (err.message === "invalid token")
+                return res.status(401).json({ message: 'Authentication Token is Invalid' });
+            else
+                res.status(500).json({
+                    error: err,
+                    message: 'SPY_VERIFY_AUTH: Internal Server Error'
+                });
+        }
+    }
+
+    const isAdministrator = (req, res, next) => {
+        next();
+    }
+
+    app.post('/api/daemondriver/online', isAuthorized, async (req, res) => {
+        res.status(200).json(await SpifyDaemonDriver.get_status(req.body.endpoint))
+    });
+
+    app.post("/api/locations/list", isAuthorized, async (req, res) => {
+        try {
+            let locations = await SpifyDbLocation.find({}).select("name spify_daemons");
+            res.status(200).send(locations);
+        } catch (err) {
+            res.status(500).send("SPY_LOC_LIST: Internal Server Error");
+        }
+    });
+
+    app.post("/api/locations/daemons", isAuthorized, async (req, res) => {
+        try {
+            let location = await SpifyDbLocation.findById(req.body.loc_id).select("-_id spify_daemons");
+            res.status(200).send(location.spify_daemons);
+        } catch (err) {
+            res.status(500).send("SPY_LOC_DAEL: Internal Server Error");
+        }
+    });
+
+    app.post("/api/locations/create", [check("name", "Name is Empty").notEmpty()], isAuthorized, isAdministrator, async(req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                errors: errors.array()
+            })
+        }
+        
+        try {
+            let new_location = new SpifyDbLocation({
+                name: req.body.name,
+                spify_daemons: []
+            });
+
+            await new_location.save();
+            res.status(200).json({ status: true });
+        } catch (err) {
+            res.status(500).send("SPY_LOC_CRET: Internal Server Error");
+        }
+    });
+
+    app.post(
+        "/api/locations/add_daemon", 
+        check("host", "Hostname/IP Address is Empty").notEmpty(), 
+        isAuthorized, isAdministrator, 
+        async (req, res) => {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    errors: errors.array()
+                })
+            }
+            
+            try {
+                let location = await SpifyDbLocation.findById(req.body.loc_id);
+                location.spify_daemons.push(req.body.host);
+
+                /* Save Document */
+                await location.save();
+                res.status(200).json({ status: true });
+            } catch (err) {
+                console.log(err);
+                res.status(500).send("SPY_LOC_DAE+: Internal Server Error");
+            }
+        }
+    );
 
     app.post('/api/auth/verify', (req, res) => {
         const jwtToken = req.cookies.jwtToken;
