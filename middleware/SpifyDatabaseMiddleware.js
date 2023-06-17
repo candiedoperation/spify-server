@@ -104,6 +104,10 @@ const InitializeAPIMiddleware = (app, config) => {
         res.status(200).json(await SpifyDaemonDriver.get_status(req.body.endpoint))
     });
 
+    app.post('/api/daemondriver/session', isAuthorized, async (req, res) => {
+        res.status(200).json(await SpifyDaemonDriver.get_active_daemons(req.body.endpoint))
+    });
+
     app.post("/api/locations/list", isAuthorized, async (req, res) => {
         try {
             let locations = await SpifyDbLocation.find({}).select("name spify_daemons");
