@@ -21,7 +21,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const { corsOrigin } = require('./middleware/SpifySaltMiddleware');
-const SpifyDatabaseMiddleware = require('./middleware/SpifyDatabaseMiddleware');
+const { SpifyDatabaseMiddleware } = require('./middleware/SpifyDatabaseMiddleware');
 const SpifyConfigVerify = require('./middleware/SpifyConfigVerify');
 
 const fs = require("fs");
@@ -35,7 +35,12 @@ let credentials = {
 /* Initialize Express */
 const app = express();
 const http = require('http');
+const { WebSocketServer } = require('ws');
+const SpifyDaemonDriver = require('./middleware/SpifyDaemonDriver');
 const server = https.createServer(credentials, app);
+
+/* Define Websocket Server for RFB Proxies */
+const wss = new WebSocketServer({ server });
 
 app.use(cookieParser());
 app.use(cors({
@@ -70,5 +75,6 @@ server.listen(3001, () => {
     } else {
         // Initialize Middleware
         SpifyDatabaseMiddleware(app, spify_config);
+        SpifyDaemonDriver(app, wss);
     }
 });

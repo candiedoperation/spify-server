@@ -17,34 +17,53 @@
 */
 
 const mongoose = require('mongoose');
-const SpifyDaemonDriver = require('./SpifyDaemonDriver');
+const { check, validationResult } = require('express-validator');
+const saltMiddleware = require('./SpifySaltMiddleware');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const SpifyDbUser = require("./../models/SpifyDbUser");
+const SpifyDbLocation = require("./../models/SpifyDbLocation");
+
+const isAuthorized = (req, res, next) => {
+    try {
+        res.decodedToken = parseJwtToken(req.cookies.jwtToken);
+        next();
+    } catch (err) {
+        if (err.message === 'jwt must be provided')
+            return res.status(401).json({ message: 'Unauthenticated', status: false });
+        else if (err.message === "invalid token")
+            return res.status(401).json({ message: 'Authentication Token is Invalid' });
+        else
+            res.status(500).json({
+                error: err,
+                message: 'SPY_VERIFY_AUTH: Internal Server Error'
+            });
+    }
+}
+
+const isAdministrator = (req, res, next) => {
+    next();
+}
+
+const msecOf = (duration) => {
+    switch (duration.charAt(duration.length - 1)) {
+        case 'd':
+            return (+duration.slice(0, -1)) * 86400000;
+        default:
+            return undefined;
+    }
+}
+
+const parseJwtToken = (token) => {
+    try {
+        const decodedToken = jwt.verify(token, saltMiddleware.saltKey)
+        return (decodedToken)
+    } catch (err) {
+        throw err;
+    }
+}
 
 const InitializeAPIMiddleware = (app, config) => {
-    const { check, validationResult } = require('express-validator');
-    const saltMiddleware = require('./SpifySaltMiddleware');
-    const bcrypt = require("bcryptjs");
-    const jwt = require("jsonwebtoken");
-    const SpifyDbUser = require("./../models/SpifyDbUser");
-    const SpifyDbLocation = require("./../models/SpifyDbLocation");
-
-    const msecOf = (duration) => {
-        switch (duration.charAt(duration.length - 1)) {
-            case 'd':
-                return (+duration.slice(0, -1)) * 86400000;
-            default:
-                return undefined;
-        }
-    }
-
-    const parseJwtToken = (token) => {
-        try {
-            const decodedToken = jwt.verify(token, saltMiddleware.saltKey)
-            return (decodedToken)
-        } catch (err) {
-            throw err;
-        }
-    }
-
     const createSpifyUser = async (spifydbuser) => {
         try {
             const salt = await bcrypt.genSalt(saltMiddleware.saltRounds);
@@ -78,35 +97,6 @@ const InitializeAPIMiddleware = (app, config) => {
 
     /* Create Admin User if it does not Exist */
     createAdminIfNotExists();
-
-    const isAuthorized = (req, res, next) => {
-        try {
-            res.decodedToken = parseJwtToken(req.cookies.jwtToken);
-            next();
-        } catch (err) {
-            if (err.message === 'jwt must be provided')
-                return res.status(401).json({ message: 'Unauthenticated', status: false });
-            else if (err.message === "invalid token")
-                return res.status(401).json({ message: 'Authentication Token is Invalid' });
-            else
-                res.status(500).json({
-                    error: err,
-                    message: 'SPY_VERIFY_AUTH: Internal Server Error'
-                });
-        }
-    }
-
-    const isAdministrator = (req, res, next) => {
-        next();
-    }
-
-    app.post('/api/daemondriver/online', isAuthorized, async (req, res) => {
-        res.status(200).json(await SpifyDaemonDriver.get_status(req.body.endpoint))
-    });
-
-    app.post('/api/daemondriver/session', isAuthorized, async (req, res) => {
-        res.status(200).json(await SpifyDaemonDriver.get_active_daemons(req.body.endpoint))
-    });
 
     app.post("/api/locations/list", isAuthorized, async (req, res) => {
         try {
@@ -253,4 +243,4 @@ const SpifyDatabaseMiddleware = async (app, config) => {
     }
 }
 
-module.exports = SpifyDatabaseMiddleware;
+module.exports = { SpifyDatabaseMiddleware, isAdministrator, isAuthorized };
