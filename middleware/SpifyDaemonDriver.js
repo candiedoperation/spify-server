@@ -1,6 +1,7 @@
 const axios = require("axios")
 const ws = require("ws");
 const net = require("net");
+const https = require('https');
 const { isAuthorized, isAdministrator } = require("./SpifyDatabaseMiddleware");
 
 const InitializeAPIMiddleware = (app, wss) => {
@@ -57,10 +58,25 @@ const InitializeAPIMiddleware = (app, wss) => {
         })
     });
 
+    /* Axios HTTPS Agent */
+    const axiosAgent = new https.Agent({ rejectUnauthorized: false });
+
+    app.post('/api/daemondriver/screenshot', isAuthorized, async (req, res) => {
+        try {
+            let endpoint = req.body.endpoint;
+            let status = await axios.get(`https://${endpoint}/api/screenshot`, { httpsAgent: axiosAgent, responseType: 'arraybuffer' });
+            res.status(200).type("png").send(status.data)
+        } catch (err) {
+            res.status(500).json({
+                error: err
+            })
+        }
+    });
+
     app.post('/api/daemondriver/online', isAuthorized, async (req, res) => {
         try {
             let endpoint = req.body.endpoint;
-            let status = await axios.get(`http://${endpoint}/api/status`);
+            let status = await axios.get(`http://${endpoint}/api/status`, { httpsAgent: axiosAgent });
             res.status(200).json(status.data)
         } catch (err) {
             res.status(200).json({
@@ -72,7 +88,7 @@ const InitializeAPIMiddleware = (app, wss) => {
     app.post('/api/daemondriver/session', isAuthorized, async (req, res) => {
         try {
             let endpoint = req.body.endpoint;
-            let status = await axios.get(`http://${endpoint}/api/sessions`);
+            let status = await axios.get(`http://${endpoint}/api/sessions`, { httpsAgent: axiosAgent });
             res.status(200).json(status.data);
         } catch (err) {
             res.status(200).json({
