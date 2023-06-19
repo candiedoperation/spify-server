@@ -29,7 +29,7 @@ const InitializeAPIMiddleware = (app, wss) => {
                         endpoint = new net.Socket();
                         let tcp_address = data_array[2].split(":");
                         endpoint.connect(tcp_address[1], tcp_address[0])
-                        
+
                         /* Message Event Listener */
                         endpoint.on("data", (remote_data) => {
                             socket.send(remote_data);
@@ -94,6 +94,16 @@ const InitializeAPIMiddleware = (app, wss) => {
             res.status(200).json({
                 online: false
             });
+        }
+    });
+
+    app.post('/api/daemondriver/power/:action', isAuthorized, async (req, res) => {
+        try {
+            let endpoint = req.body.endpoint;
+            await axios.get(`https://${endpoint}/api/power/${req.params.action}`, { httpsAgent: axiosAgent });
+            res.status(200).json({ status: true });
+        } catch (err) {
+            res.status(500).json({ error: err });
         }
     });
 }
