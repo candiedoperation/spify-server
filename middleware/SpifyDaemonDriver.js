@@ -81,8 +81,10 @@ const InitializeAPIMiddleware = (app, wss) => {
     app.post('/api/daemondriver/screenshot', isAuthorized, async (req, res) => {
         try {
             let endpoint = req.body.endpoint;
+            let secure = req.body.secure;
+
             let status = await axios.get(
-                `https://${endpoint}/api/screenshot`, 
+                `http${(secure == true) ? "s" : ""}://${endpoint}/api/screenshot`, 
                 { httpsAgent: axiosAgent, responseType: 'arraybuffer', headers: { pairkey: server_id } }
             );
             
@@ -137,7 +139,7 @@ const InitializeAPIMiddleware = (app, wss) => {
         try {
             let endpoint = req.body.endpoint;
             await axios.get(
-                `https://${endpoint}/api/power/${req.params.action}`, 
+                `http${(secure == true) ? "s" : ""}://${endpoint}/api/power/${req.params.action}`, 
                 { httpsAgent: axiosAgent, headers: { pairkey: server_id } }
             );
 
