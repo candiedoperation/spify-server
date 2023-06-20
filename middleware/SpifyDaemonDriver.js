@@ -76,10 +76,14 @@ const InitializeAPIMiddleware = (app, wss) => {
     app.post('/api/daemondriver/online', isAuthorized, async (req, res) => {
         try {
             let endpoint = req.body.endpoint;
-            let status = await axios.get(`http://${endpoint}/api/status`, { httpsAgent: axiosAgent });
+            let status = await axios.get(`http://${endpoint}/api/status`, { httpsAgent: axiosAgent, headers: { pairkey: 2 } });
             res.status(200).json(status.data)
         } catch (err) {
+            let errorCode = 0;
+            if (err.response) errorCode = err.response.status;
+            
             res.status(200).json({
+                errorCode,
                 online: false
             })
         }
