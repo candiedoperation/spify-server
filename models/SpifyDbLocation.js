@@ -23,6 +23,7 @@ const SpifyDbLocation = mongoose.Schema({
         type: String,
         required: true
     },
+    ldapGroups: [{ type: String }],
     spify_daemons: [{
         type: String
     }],

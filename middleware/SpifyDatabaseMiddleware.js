@@ -23,6 +23,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const SpifyDbUser = require("./../models/SpifyDbUser");
 const SpifyDbLocation = require("./../models/SpifyDbLocation");
+const SpifyAuthenticationMethods = require('./SpifyAuthenticationMethods');
 
 const isAuthorized = (req, res, next) => {
     try {
@@ -197,32 +198,39 @@ const InitializeAPIMiddleware = (app, config) => {
         }
 
         try {
-            const loginUser = await SpifyDbUser.findOne({ username: req.body.username })
-            if (!loginUser)
-                return res.status(401).json({ message: "Couldn't find your Spify Account.", status: false });
+            /* Define Authentication State */
+            let auth = { status: false };
 
-            const passwordMatches = await bcrypt.compare(req.body.password, loginUser.password);
-            if (!passwordMatches)
-                return res.status(401).json({ message: "Wrong Password. <b>Forgot Password</b> helps you reset it.", status: false });
-
-            const jwtPayload = {
-                id: loginUser.id,
-                email: loginUser.email,
-                name: loginUser.fullName
+            for (let i = 0; i < SpifyAuthenticationMethods.length; i++) {
+                let authenticate = SpifyAuthenticationMethods[i];
+                auth = await authenticate(req.body.username, req.body.password);
+                if (auth.status == true) break;
             }
 
-            jwt.sign(
-                jwtPayload,
-                saltMiddleware.saltKey,
-                { expiresIn: '3d' },
-                (err, jwtToken) => {
-                    if (err) throw (err)
-                    res
-                        .status(200)
-                        .cookie("jwtToken", jwtToken, { httpOnly: true, maxAge: msecOf('3d').toString(), secure: true, sameSite: 'none' })
-                        .json({ status: true })
+            if (auth.status == true && auth.loginUser) {
+                let loginUser = auth.loginUser;
+                const jwtPayload = {
+                    id: loginUser.id,
+                    email: loginUser.email,
+                    name: loginUser.fullName
                 }
-            )
+    
+                jwt.sign(
+                    jwtPayload,
+                    saltMiddleware.saltKey,
+                    { expiresIn: '3d' },
+                    (err, jwtToken) => {
+                        if (err) throw (err)
+                        res
+                            .status(200)
+                            .cookie("jwtToken", jwtToken, { httpOnly: true, maxAge: msecOf('3d').toString(), secure: true, sameSite: 'none' })
+                            .json({ status: true })
+                    }
+                )
+            } else {
+                /* Send Response */
+                res.status(401).json(auth);
+            }
         } catch (err) {
             res.status(500).json({
                 error: err,

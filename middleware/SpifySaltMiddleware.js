@@ -19,7 +19,7 @@
 const saltRounds = 6; //Change in Production
 const saltKey = "spify-salt-key" //Change in Production
 const isProd = false; //Change in Production
-const prodxCORSOrigin = ['https://3000.local.atheesh.org:3000', 'https://10.0.0.110:3000', 'http://localhost:3000', undefined]
+const prodxCORSOrigin = ['https://3000.local.atheesh.org', 'https://10.0.0.110:3000', 'http://localhost:3000', undefined]
 const prodCORSOrigin = ['https://10.0.0.110:3000']
 const corsOrigin = (isProd === false) ? prodxCORSOrigin : prodCORSOrigin;
 

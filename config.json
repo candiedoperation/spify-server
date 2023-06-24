@@ -1,1 +1,22 @@
-{"serverid":"e2bdc8e1-d642-451b-ab6d-fcf8ae9b8406", "mongourl": "mongodb://127.0.0.1:27017/spify"}
+{
+    "serverid":"e2bdc8e1-d642-451b-ab6d-fcf8ae9b8406", 
+    "mongourl": "mongodb://127.0.0.1:27017/spify",
+    "ldap": {
+        "connect": {
+            "url": "ldaps://dc01.atheesh.org:636",
+            "tlsOptions": {
+                "rejectUnauthorized": false
+            }
+        },
+        "bind": {
+            "dn": "CN=Administrator,CN=Users,DC=atheesh,DC=org",
+            "password": "********"
+        },
+        "filter": {
+            "dn": "CN",
+            "base_dn": "CN=Users,DC=atheesh,DC=org",
+            "query": "(cn=%s)",
+            "nameKey": "name"
+        }
+    }
+}

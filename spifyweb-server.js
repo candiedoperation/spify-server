@@ -16,6 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+const fs = require("fs");
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -24,20 +25,25 @@ const { corsOrigin } = require('./middleware/SpifySaltMiddleware');
 const { SpifyDatabaseMiddleware } = require('./middleware/SpifyDatabaseMiddleware');
 const SpifyConfigVerify = require('./middleware/SpifyConfigVerify');
 
-const fs = require("fs");
-const https = require('https');
-let credentials = { 
-  key: fs.readFileSync('ssl/key.pem', 'utf8'), 
-  cert: fs.readFileSync('ssl/cert.pem', 'utf8') 
-};
-
-
 /* Initialize Express */
+let server;
 const app = express();
 const http = require('http');
+const https = require('https');
 const { WebSocketServer } = require('ws');
 const SpifyDaemonDriver = require('./middleware/SpifyDaemonDriver');
-const server = https.createServer(credentials, app);
+
+if (process.env.HTTPS == "true") {
+  let credentials = { 
+    key: fs.readFileSync('ssl/key.pem', 'utf8'), 
+    cert: fs.readFileSync('ssl/cert.pem', 'utf8') 
+  };
+
+  server = https.createServer(credentials, app);
+} else {
+  /* Set Server to HTTP */
+  server = http.createServer(app);
+}
 
 /* Define Websocket Server for RFB Proxies */
 const wss = new WebSocketServer({ server });
@@ -63,7 +69,8 @@ app.use(bodyParser.urlencoded({
   limit: "10mb",
 }));
 
-app.get('/', (req, res) => {
+app.use(express.static(__dirname + '/public'));
+app.get('/api', (req, res) => {
   res.send('<h1>Spify Web Server is listening to API requests!</h1>');
 });
 
