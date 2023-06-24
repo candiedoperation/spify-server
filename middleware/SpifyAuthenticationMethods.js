@@ -21,7 +21,7 @@ const LDAP = async (username, password) => {
                             filter.base_dn
                             .substr(filter.base_dn.search("DC"))
                             .split(",");
-    
+
                         /* Try to Get User's Name From LDAP */
                         ldapConnection.search(filter.base_dn, { filter: `(${filter.dn}=${username})`, scope: 'one', attributes: filter.nameKey }, (err, res) => {
                             if (err) resolve({ status: false });
@@ -37,7 +37,7 @@ const LDAP = async (username, password) => {
                                     loginUser.id = ldapUser._id;
                                     loginUser.email = `${username}@${emailArray.map((e) => (e.split("DC=")[1])).join(".")}`
                                     loginUser.fullName = fullName;
-                
+
                                     resolve({ status: true, loginUser })
                                 })
                             }

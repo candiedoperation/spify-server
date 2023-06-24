@@ -101,7 +101,7 @@ const InitializeAPIMiddleware = (app, config) => {
 
     app.post("/api/locations/list", isAuthorized, async (req, res) => {
         try {
-            let locations = await SpifyDbLocation.find({}).select("name spify_daemons");
+            let locations = await SpifyDbLocation.find({}).select("name spify_daemons ldap_groups");
             res.status(200).send(locations);
         } catch (err) {
             res.status(500).send("SPY_LOC_LIST: Internal Server Error");
@@ -128,6 +128,7 @@ const InitializeAPIMiddleware = (app, config) => {
         try {
             let new_location = new SpifyDbLocation({
                 name: req.body.name,
+                ldap_groups: (req.body.ldapGroups) ? req.body.ldapGroups : [],
                 spify_daemons: []
             });
 
@@ -135,6 +136,18 @@ const InitializeAPIMiddleware = (app, config) => {
             res.status(200).json({ status: true });
         } catch (err) {
             res.status(500).send("SPY_LOC_CRET: Internal Server Error");
+        }
+    });
+
+    app.post("/api/locations/delete", isAuthorized, isAdministrator, async (req, res) => {
+        try {
+            /* Check for LocID */
+            if (!req.body.loc_id) res.status(400).json({ message: "LOC_ID is Empty" });
+
+            await SpifyDbLocation.findByIdAndRemove(req.body.loc_id);
+            res.status(200).json({ status: true });
+        } catch (err) {
+            res.status(500).send("SPY_LOC_LIST: Internal Server Error");
         }
     });
 
@@ -156,6 +169,36 @@ const InitializeAPIMiddleware = (app, config) => {
 
                 /* Save Document */
                 await location.save();
+                res.status(200).json({ status: true });
+            } catch (err) {
+                console.log(err);
+                res.status(500).send("SPY_LOC_DAE+: Internal Server Error");
+            }
+        }
+    );
+
+    app.post(
+        "/api/locations/delete_daemon", 
+        [
+            check("daemon_id", "DaemonID is Empty").notEmpty(),
+            check("loc_id", "LocID is Empty").notEmpty()
+        ], 
+        isAuthorized, isAdministrator, 
+        async (req, res) => {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    errors: errors.array()
+                })
+            }
+            
+            try {
+                await SpifyDbLocation.findByIdAndUpdate(
+                    req.body.loc_id,
+                    { $pull: { spify_daemons: req.body.daemon_id } }
+                );
+                
+                /* Send Response, if success */
                 res.status(200).json({ status: true });
             } catch (err) {
                 console.log(err);

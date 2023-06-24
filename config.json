@@ -10,7 +10,7 @@
         },
         "bind": {
             "dn": "CN=Administrator,CN=Users,DC=atheesh,DC=org",
-            "password": "********"
+            "password": "*******"
         },
         "filter": {
             "dn": "CN",

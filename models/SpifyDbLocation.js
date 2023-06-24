@@ -17,13 +17,14 @@
 */
 
 const mongoose = require('mongoose');
+const SpifyDatabaseRelationshipManager = require("../middleware/SpifyDatabaseRelationshipManager");
 
 const SpifyDbLocation = mongoose.Schema({
     name: {
         type: String,
         required: true
     },
-    ldapGroups: [{ type: String }],
+    ldap_groups: [{ type: String }],
     spify_daemons: [{
         type: String
     }],
@@ -32,5 +33,8 @@ const SpifyDbLocation = mongoose.Schema({
         default: Date.now()
     }
 });
+
+/* PreRemove Calls */
+SpifyDbLocation.pre("remove", SpifyDatabaseRelationshipManager.locationPreRemove)
 
 module.exports = mongoose.model("location", SpifyDbLocation);
