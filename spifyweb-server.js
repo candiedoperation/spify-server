@@ -85,5 +85,6 @@ server.listen(3001, () => {
 
         /* Serving the Public Folder */
         app.use(express.static(__dirname + '/public'));
+        app.get('*', (req,res) => res.sendFile(__dirname+'/public/index.html'))
     }
 });
