@@ -19,8 +19,6 @@
 const saltRounds = 6; //Change in Production
 const saltKey = "spify-salt-key" //Change in Production
 const isProd = (process.env.NODE_ENV == "production");
-const prodxCORSOrigin = ['https://3000.local.atheesh.org', 'https://10.0.0.110:3000', 'http://localhost:3000', undefined]
-const prodCORSOrigin = ['*']
-const corsOrigin = (isProd === false) ? prodxCORSOrigin : prodCORSOrigin;
+const corsOrigin = ['*'];
 
 module.exports = { saltRounds, saltKey, isProd, corsOrigin };
