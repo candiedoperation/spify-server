@@ -51,7 +51,7 @@ const wss = new WebSocketServer({ server });
 app.use(cookieParser());
 app.use(cors({
   origin: ((origin, next) => {
-    if (corsOrigin.indexOf(origin) !== -1) {
+    if (corsOrigin.indexOf(origin) > -1 || corsOrigin.indexOf("*") > -1) {
       next(null, true);
     } else {
       next(new Error('Invalid Prod/ProdX CORS Origin'))
@@ -69,7 +69,6 @@ app.use(bodyParser.urlencoded({
   limit: "10mb",
 }));
 
-app.use(express.static(__dirname + '/public'));
 app.get('/api', (req, res) => {
   res.send('<h1>Spify Web Server is listening to API requests!</h1>');
 });
@@ -83,5 +82,8 @@ server.listen(3001, () => {
         // Initialize Middleware
         SpifyDatabaseMiddleware(app, spify_config);
         SpifyDaemonDriver(app, wss);
+
+        /* Serving the Public Folder */
+        app.use(express.static(__dirname + '/public'));
     }
 });
